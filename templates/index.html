@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Torque — Mechanic Chat</title>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --panel:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#e2e8f0;
+      --soft:#f8fafc;
+      --soft2:#f1f5f9;
+      --accent:#2563eb;
+      --shadow: 0 10px 30px rgba(2,6,23,.06);
+      --radius:16px;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* App shell */
+    .app{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* Top bar */
+    .topbar{
+      position: sticky;
+      top:0;
+      z-index:10;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-inner{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 220px;
+    }
+    .logo{
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display:grid;
+      place-items:center;
+      background: var(--soft2);
+      border: 1px solid var(--border);
+      user-select:none;
+    }
+    .brand h1{
+      font-size: 14px;
+      margin:0;
+      line-height:1.2;
+      letter-spacing:.2px;
+    }
+    .brand p{
+      margin:3px 0 0;
+      font-size:12px;
+      color: var(--muted);
+    }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    .pill{
+      text-decoration:none;
+      font-size:12px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    /* Chat area */
+    .main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+
+    .chat-wrap{
+    flex:1;
+    min-height:0;
+    overflow:auto;
+    padding: 24px 0;
+    background: #ffffff;
+    display:flex;
+    justify-content:center;
+    }
+
+    .chat{
+    width: 100%;
+    max-width: 900px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;     /* 👈 soft border */
+    border-radius: 16px;            /* 👈 rounded corners */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.04); /* 👈 subtle depth */
+    padding: 24px;
+    display:flex;
+    flex-direction:column;
+    gap: 18px;
+    }
+    .msg{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+
+    .avatar{
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--soft2);
+      display:grid;
+      place-items:center;
+      font-size: 14px;
+      user-select:none;
+      flex: 0 0 auto;
+    }
+
+    .bubble{
+      max-width: 780px;
+      background: var(--soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      line-height: 1.55;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      box-shadow: none;
+    }
+
+    .meta{
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .msg.user{
+      flex-direction: row-reverse;
+    }
+    .msg.user .avatar{
+      background: #eef2ff;
+      border-color: #dbeafe;
+    }
+    .msg.user .bubble{
+      background: #eef2ff;
+      border-color: #dbeafe;
+    }
+
+    /* Typing indicator */
+    .typing{
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+    }
+    .dot{
+      width:7px; height:7px;
+      border-radius:50%;
+      background: var(--muted);
+      opacity:.35;
+      animation: bounce 1.15s infinite;
+    }
+    .dot:nth-child(2){ animation-delay: .12s; }
+    .dot:nth-child(3){ animation-delay: .24s; }
+    @keyframes bounce{
+      0%,100%{ transform: translateY(0); opacity:.35; }
+      50%{ transform: translateY(-4px); opacity:1; }
+    }
+
+    /* Composer */
+    .composer{
+      border-top: 1px solid var(--border);
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(8px);
+      padding: 12px 0;
+    }
+
+    .composer-inner{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .inputbar{
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      padding: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    textarea{
+      flex:1;
+      border:none;
+      outline:none;
+      resize:none;
+      min-height: 22px;
+      max-height: 160px;
+      font-size: 14px;
+      line-height: 1.45;
+      font-family: var(--sans);
+      color: var(--text);
+      padding: 6px 8px;
+    }
+
+    .send{
+      border:none;
+      cursor:pointer;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      user-select:none;
+    }
+    .send:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .hint{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .chips{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+    .chip{
+      border: 1px solid var(--border);
+      background: var(--soft);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip:hover{
+      border-color:#cbd5e1;
+      background:#fff;
+    }
+
+    @media (max-width: 640px){
+      .bubble{ max-width: 100%; }
+      .topbar-inner{ padding: 12px 12px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="logo">⚙️</div>
+          <div>
+            <h1>Torque</h1>
+            <p>Mechanic-style vehicle advice</p>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <a class="pill" href="/health" target="_blank" rel="noreferrer">Health</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="chat-wrap" id="chatWrap">
+        <div class="chat" id="chat">
+          <div class="msg bot">
+            <div class="avatar">⚙️</div>
+            <div>
+              <div class="bubble">Tell me what’s happening with your vehicle. Include make/model/year, engine type, warning lights, and when the symptom occurs.</div>
+              <div class="meta">Tip: “rattling only on cold start” is more useful than just “noise”.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="chips">
+            <button class="chip" data-chip="My engine is rattling at idle. No warning lights. What could it be and what checks should I do?">Engine rattling</button>
+            <button class="chip" data-chip="My car is overheating in traffic. Coolant level seems okay. What should I check first?">Overheating</button>
+            <button class="chip" data-chip="I hear squealing when braking at low speed. What could be the cause?">Brake noise</button>
+            <button class="chip" data-chip="Check engine light is on and the car feels sluggish. What are common causes and safe checks?">Check engine light</button>
+          </div>
+
+          <div class="inputbar">
+            <textarea id="q" placeholder="Message Torque… (Ctrl+Enter to send)"></textarea>
+            <button class="send" id="sendBtn">Send</button>
+          </div>
+
+          <div class="hint" id="status">
+            <span>Be safe: if oil pressure / brake failure / fuel smell / overheating → stop driving.</span>
+            <span>Ctrl+Enter to send</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const chatWrap = document.getElementById("chatWrap");
+    const q = document.getElementById("q");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusEl = document.getElementById("status");
+
+    function scrollToBottom(){
+      chatWrap.scrollTop = chatWrap.scrollHeight;
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+    }
+
+    // Removes common markdown symbols so output looks like normal text
+    function stripMarkdown(s){
+      if(!s) return "";
+      let t = String(s);
+
+      // remove fenced code blocks and backticks
+      t = t.replace(/```[\s\S]*?```/g, (m)=> m.replace(/```/g,""));
+      t = t.replace(/`+/g,"");
+
+      // remove bold/italic markers
+      t = t.replace(/\*\*/g,"");
+      t = t.replace(/\*/g,"");
+      t = t.replace(/__/g,"");
+      t = t.replace(/_/g,"");
+
+      // remove heading markers
+      t = t.replace(/^#{1,6}\s+/gm,"");
+
+      // normalize bullets
+      t = t.replace(/^\s*[-•]\s+/gm, "• ");
+
+      return t.trim();
+    }
+
+    function addMessage(text, who="bot", meta=""){
+      const isUser = who === "user";
+      const wrapper = document.createElement("div");
+      wrapper.className = "msg " + (isUser ? "user" : "bot");
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = isUser ? "🧑" : "⚙️";
+
+      const block = document.createElement("div");
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerHTML = escapeHtml(text);
+
+      block.appendChild(bubble);
+
+      if (meta) {
+        const m = document.createElement("div");
+        m.className = "meta";
+        m.textContent = meta;
+        block.appendChild(m);
+      }
+
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(block);
+
+      chat.appendChild(wrapper);
+      scrollToBottom();
+      return wrapper;
+    }
+
+    function setStatus(leftText, rightText=""){
+      statusEl.innerHTML = `<span>${escapeHtml(leftText || "")}</span><span>${escapeHtml(rightText || "")}</span>`;
+    }
+
+    function setSending(isSending){
+      sendBtn.disabled = isSending;
+    }
+
+    function autoGrow(el){
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 160) + "px";
+    }
+
+    q.addEventListener("input", ()=> autoGrow(q));
+
+    async function send(){
+      const question = (q.value || "").trim();
+      if(!question) return;
+
+      addMessage(question, "user");
+      q.value = "";
+      autoGrow(q);
+
+      setSending(true);
+      setStatus("Torque is thinking…", "");
+
+      // typing indicator
+      const typing = addMessage(" ", "bot");
+      typing.querySelector(".bubble").innerHTML =
+        `<span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>`;
+
+      try{
+        const res = await fetch("/api/ask", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ question })
+        });
+
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || "Request failed.");
+
+        const answer = stripMarkdown(data.answer || "");
+        typing.querySelector(".bubble").innerHTML = escapeHtml(answer);
+
+        setStatus("Done. Follow safe checks first.", "Ctrl+Enter to send");
+      }catch(err){
+        typing.querySelector(".bubble").innerHTML =
+          escapeHtml("Sorry — I couldn’t generate a response. Check server logs and GROQ_API_KEY.");
+        setStatus(String(err.message || err), "");
+      }finally{
+        setSending(false);
+      }
+    }
+
+    sendBtn.addEventListener("click", send);
+
+    q.addEventListener("keydown", (e)=>{
+      if((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+        send();
+      }
+    });
+
+    // Chips
+    document.querySelectorAll(".chip").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        q.value = btn.getAttribute("data-chip") || "";
+        autoGrow(q);
+        q.focus();
+      });
+    });
+
+    // Start
+    scrollToBottom();
+  </script>
+</body>
+</html>
