@@ -97,5 +97,5 @@ def ask():
 
 
 if __name__ == "__main__":
-    # In prod: use gunicorn; in dev: flask built-in server is fine
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8000")), debug=True)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
